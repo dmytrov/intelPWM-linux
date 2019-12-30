@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+CONFIG=/etc/intelpwm.conf
+if [ ! -f "$CONFIG" ]; then
+    echo "$CONFIG not found"
+    exit 1
+fi
+
+source $CONFIG
+
+RAW_DATA="$(intel_reg read ${REGISTER})"
+CYCLE="${RAW_DATA:56:4}"
+
+intel_reg write "${REGISTER}" "0x${PERIOD}${CYCLE}"
+
+# Set correct brightness
+br=`cat /sys/class/backlight/acpi_video0/brightness`
+maxbr=`cat /sys/class/backlight/acpi_video0/max_brightness`
+
+#let rat=$((1 + 100*$br / $maxbr))
+case $br in
+  0) let rat=1 ;;
+  1) let rat=3 ;;
+  2) let rat=7 ;;
+  3) let rat=15 ;;
+  *) let rat=$((1 + 100*$br / $maxbr)) ;;
+esac
+
+intel_backlight $rat
